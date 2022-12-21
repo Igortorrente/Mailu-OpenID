@@ -37,12 +37,12 @@ RUN mkdir -p /app
 WORKDIR /app
 
 COPY requirements-prod.txt requirements.txt
-RUN set -eu \
- && apk add --no-cache libressl curl postgresql-libs mariadb-connector-c \
- && apk add --no-cache --virtual build-dep libressl-dev libffi-dev python3-dev build-base postgresql-dev mariadb-connector-c-dev cargo \
- && pip install --upgrade pip \
- && pip install -r requirements.txt \
- && apk del --no-cache build-dep
+RUN set -eu && apk add --no-cache libressl curl postgresql-libs mariadb-connector-c
+RUN set -eu && apk add --no-cache --virtual build-dep libressl-dev libffi-dev python3-dev build-base postgresql-dev mariadb-connector-c-dev cargo
+RUN set -eu && rm -rf /usr/lib/python3.9/site-packages/idna-3.2-py3.9.egg-info
+RUN set -eu && pip install --upgrade pip
+RUN set -eu && pip install -r requirements.txt
+RUN set -eu && apk del --no-cache build-dep
 
 COPY --from=assets static ./mailu/static
 COPY mailu ./mailu
