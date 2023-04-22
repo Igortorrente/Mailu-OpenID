@@ -2,6 +2,8 @@ from mailu import models, utils
 from flask import current_app as app
 from socrate import system
 
+import os
+import re
 import urllib
 import ipaddress
 import sqlalchemy.exc
@@ -129,16 +131,36 @@ def get_status(protocol, status):
     status, codes = STATUSES[status]
     return status, codes[protocol]
 
+def extract_host_port(host_and_port, default_port):
+    host, _, port = re.match('^(.*?)(:([0-9]*))?$', host_and_port).groups()
+    return host, int(port) if port else default_port
+
 def get_server(protocol, authenticated=False):
     if protocol == "imap":
-        hostname, port = app.config['IMAP_ADDRESS'], 143
+        imap_override = os.environ.get(f'IMAP_ADDRESS_OVERRIDE')
+        if (imap_override == None):
+            hostname, port = app.config['IMAP_ADDRESS'], 143
+        else:
+            hostname, port = extract_host_port(imap_override, 143)
     elif protocol == "pop3":
-        hostname, port = app.config['IMAP_ADDRESS'], 110
+        pop3_override = os.environ.get(f'POP3_ADDRESS_OVERRIDE')
+        if (pop3_override == None):
+            hostname, port = app.config['IMAP_ADDRESS'], 110
+        else:
+            hostname, port = extract_host_port(pop3_override, 110)
     elif protocol == "smtp":
         if authenticated:
-            hostname, port = app.config['SMTP_ADDRESS'], 10025
+            authsmtp_override = os.environ.get(f'AUTHSMTP_ADDRESS_OVERRIDE')
+            if (authsmtp_override == None):
+                hostname, port = app.config['SMTP_ADDRESS'], 10025
+            else:
+                hostname, port = extract_host_port(authsmtp_override, 10025)
         else:
-            hostname, port = app.config['SMTP_ADDRESS'], 25
+            smtp_override = os.environ.get(f'SMTP_ADDRESS_OVERRIDE')
+            if (smtp_override == None):
+                hostname, port = app.config['SMTP_ADDRESS'], 25
+            else:
+                hostname, port = extract_host_port(smtp_override, 25)
     try:
         # test if hostname is already resolved to an ip address
         ipaddress.ip_address(hostname)
